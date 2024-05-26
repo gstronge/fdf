@@ -1,0 +1,33 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   fdf.h                                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: gstronge <gstronge@student.42heilbronn.    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2024/05/23 17:06:20 by gstronge          #+#    #+#             */
+/*   Updated: 2024/05/26 17:03:21 by gstronge         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#ifndef FDF_H
+# define FDF_H
+
+// # include "MLX42/build/libmlx42.a"
+// # include "MLX42/include/MLX42/MLX42.h"
+// # include 
+# include "libft/libft.h"
+#include <stdlib.h>
+# include <unistd.h>
+# include <fcntl.h>
+
+typedef struct point
+{
+	float	x;//do these need to be uint32_t???????????????????????????????????????????
+	float	y;
+	float	z;
+	uint32_t	colour;
+}point;
+
+
+#endif
