@@ -6,7 +6,7 @@
 /*   By: gstronge <gstronge@student.42heilbronn.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/23 17:04:10 by gstronge          #+#    #+#             */
-/*   Updated: 2024/05/26 17:02:53 by gstronge         ###   ########.fr       */
+/*   Updated: 2024/05/27 19:12:06 by gstronge         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,19 +16,35 @@
 
 /*
 
+
+PLAN:
+ft_make_grid > dimensions of grid, 2D array of points
+ft_parse_map > fill out points structs in the grid, then iso and simultaneously find min/max x and y
+ft_draw_points > after scaling has been done based on min/max x and y 
+(need to figure out how to center also!!!!????)
+ft_calculate_(and maybe draw)lines > Bresenham
+free (including split and gnl)
+
+
 error handling
 ==============
 no of args, map doesn't exist in location,  other?? (don't need to check if map is incorrect??? from subject - we assume the map contained in the file is properly formatted.)
 
+
+make a grid:
+============
+
+need a grid to include width and height of map and also the max/min x and y values after the isometric conversion is done to be able to scale
+also need a 2D array or linked list (with x/y coords of map) to be able to draw the lines
+
+
 parse map:
 ==========
-x and y coordinates should be simple
-maybe find all heights on highest layer and collect all x/y points, then adjust instance
-and put it in the window
-then do the same for next highest height
-repeat forever
+need to do colours
+scaling issue???????????
 
 then add lines between pixels - how to do this?
+
 
 isometric view:
 ===============
@@ -40,6 +56,13 @@ from Wiki: An isometric view of an object can be obtained by choosing the viewin
 use this to rotate 45 deg. in the x/y plane
 then rotate approximately 35.264° (precisely arcsin 1⁄√3 or arctan 1⁄√2)
 int the y/z plane
+
+x' = (x−z) * cos(30)
+y' = y+(x+z) * sin(30)
+
+x' = (sqrt(2)/2) * (x - y);
+y' = ((sqrt(6)/6) * (x + y)) - ((sqrt(3)/3) * z);
+
 
 */
 
@@ -78,7 +101,8 @@ int the y/z plane
 // void mlx_set_instance_depth(mlx_instance_t* instance, int32_t zdepth);
 
 
-
+#include <stdio.h>// --------- REMOVE ----------- REMOVE ----------- REMOVE ----------- 
+#include <math.h>// --------- REMOVE ----------- REMOVE ----------- REMOVE ----------- 
 
 
 static void ft_error(void)
@@ -87,20 +111,61 @@ static void ft_error(void)
 	exit(EXIT_FAILURE);
 }
 
+point	*ft_isometric(point *pixel)
+{
+	float	temp_x;
+	float	temp_y;
+	
+	temp_x = pixel->x;
+	temp_y = pixel->y;
+	pixel->x = (sqrt(2)/2) * (temp_x - temp_y);//need to remove the sqrt function!!!!!!!!!!!
+	pixel->y = ((sqrt(6)/6) * (temp_x + temp_y)) - ((sqrt(3)/3) * pixel->z);//need to remove the sqrt function!
+	return (pixel);
+}
 
+uint32_t	ft_colour(char *str)
+{
+	uint32_t	colour;
+	int			i;
+
+	colour = 0;
+	i = 0;
+	while (i < 6 && str[i] != '\0')
+	{
+		if (str[i] <= '9')
+			colour = (colour * 16) + str[i] - '0';
+		else
+			colour = (colour * 16) + str[i] - 'A' + 10;
+		i++;	
+	}
+	while (i < 8)
+	{
+		colour = colour << 4;
+		i++;
+	}
+	colour += 255;
+	return (colour);
+}
 
 point	*ft_make_point(char **map_array, int x_coord, int y_coord, int scale)
 {
 	point	*pixel;
+	int		i;
 
+	i = 0;
 	pixel = (point *)malloc(sizeof(point));
-	pixel->x = x_coord * scale;
-	pixel->y = y_coord * scale;
-	pixel->z = ft_atoi(map_array[x_coord]) * scale;
-	if (pixel->z == 10)
-		pixel->colour = 0xFF0000FF;
+	while (map_array[x_coord][i] != ',' && map_array[x_coord][i] != '\0')
+		i++;
+	if (map_array[x_coord][i] == '\0')
+		pixel->colour = 0xFFFFFFFF;
 	else
-		pixel->colour = 0x0CFF00FF;
+		pixel->colour = ft_colour(&map_array[x_coord][i + 3]);
+	// printf(" z = %f colour after = %x\n",pixel->z, pixel->colour);//=============================================
+	pixel->x = (x_coord * scale) + 500;
+	pixel->y = (y_coord * scale) + 200;
+	pixel->z = ft_atoi(map_array[x_coord]) * scale;
+	pixel = ft_isometric(pixel);
+	// printf(" z = %f colour before = %x ",pixel->z, pixel->colour);//=============================================
 	return(pixel);
 }
 
@@ -122,9 +187,9 @@ int32_t	main(int argc, char **argv)
 	map_line = NULL;
 	x_coord = 0;
 	y_coord = 0;
-	height = 800;
-	width = 1200;
-	scale = 1;
+	height = 1200;
+	width = 1800;
+	scale = 50;
 	
 	mlx_t*	mlx;
 	
@@ -140,6 +205,8 @@ int32_t	main(int argc, char **argv)
 	if (!img)
 		ft_error();
 
+	// grid = ft_make_grid();
+	
 	fd = open(argv[1], O_RDONLY);
 	if (fd == -1)
 		return (1);
@@ -153,18 +220,20 @@ int32_t	main(int argc, char **argv)
 		{
 			pix = ft_make_point(map_array, x_coord, y_coord, scale);
 			// pix = ft_trans_iso(pix);
+			printf("x = %f, y = %f\n", pix->x, pix->y);
 			mlx_put_pixel(img, pix->x, pix->y, pix->colour);
 			x_coord++;
 		}
 		y_coord++;
 		x_coord = 0;
-	}	
+	}
+	close(fd);
 	// mlx_put_pixel(img, 500, 400, 0xFFAFF1F2);
 
-	if (mlx_image_to_window(mlx, img, 0, 0) < 0)
+	if (mlx_image_to_window(mlx, img, width/scale, height/scale) < 0)
 		ft_error();
 
-	if (!mlx_put_string(mlx, "fdf project map", 50, 50))
+	if (!mlx_put_string(mlx, "scale", 50, 50))
 		ft_error();
 
 	mlx_loop(mlx);
@@ -172,6 +241,7 @@ int32_t	main(int argc, char **argv)
 	// mlx_new_window();
 
 	mlx_terminate(mlx);
+	// ft_free_all();
 	return (EXIT_SUCCESS);
 }
 
