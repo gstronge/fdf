@@ -6,7 +6,7 @@
 /*   By: gstronge <gstronge@student.42heilbronn.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/23 17:04:10 by gstronge          #+#    #+#             */
-/*   Updated: 2024/05/29 19:09:36 by gstronge         ###   ########.fr       */
+/*   Updated: 2024/05/31 11:50:15 by gstronge         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,6 @@
 /*
 
 
-PLAN:
 ft_make_grid > dimensions of grid, 2D array of points
 ft_parse_map > fill out points structs in the grid, then iso and simultaneously find min/max x and y
 ft_draw_points > after scaling has been done based on min/max x and y 
@@ -111,11 +110,11 @@ static void ft_error(void)
 	exit(EXIT_FAILURE);
 }
 
-point	*ft_isometric(point *pixel, int row, int column)
+pixel	*ft_isometric(pixel *pix, int row, int col)
 {
-	pixel->x = (sqrt(2)/2) * (column - row);//need to remove the sqrt function!!!!!!!!!!!
-	pixel->y = ((sqrt(6)/6) * (column + row)) - ((sqrt(3)/3) * pixel->z);//need to remove the sqrt function!
-	return (pixel);
+	pix->x = (sqrt(2)/2) * (col - row);//need to remove the sqrt function!!!!!!!!!!!
+	pix->y = ((sqrt(6)/6) * (col + row)) - ((sqrt(3)/3) * pix->z);//need to remove the sqrt function!
+	return (pix);
 }
 
 uint32_t	ft_colour(char *str)
@@ -142,55 +141,55 @@ uint32_t	ft_colour(char *str)
 	return (colour);
 }
 
-// point	*ft_make_point(char **map_array, int x_coord, int y_coord, int scale)
+// pixel	*ft_make_point(char **map_array, int x_coord, int y_coord, int scale)
 // {
-// 	point	*pixel;
+// 	pixel	*pix;
 // 	int		i;
 
 // 	i = 0;
-// 	pixel = (point *)malloc(sizeof(point));
+// 	pix = (pixel *)malloc(sizeof(pixel));
 // 	while (map_array[x_coord][i] != ',' && map_array[x_coord][i] != '\0')
 // 		i++;
 // 	if (map_array[x_coord][i] == '\0')
-// 		pixel->colour = 0xFFFFFFFF;
+// 		pix->colour = 0xFFFFFFFF;
 // 	else
-// 		pixel->colour = ft_colour(&map_array[x_coord][i + 3]);
-// 	// printf(" z = %f colour after = %x\n",pixel->z, pixel->colour);//=============================================
-// 	pixel->x = (x_coord * scale) + 500;
-// 	pixel->y = (y_coord * scale) + 200;
-// 	pixel->z = ft_atoi(map_array[x_coord]) * scale;
-// 	pixel = ft_isometric(pixel);
-// 	// printf(" z = %f colour before = %x ",pixel->z, pixel->colour);//=============================================
-// 	return(pixel);
+// 		pix->colour = ft_colour(&map_array[x_coord][i + 3]);
+// 	// printf(" z = %f colour after = %x\n",pix->z, pix->colour);//=============================================
+// 	pix->x = (x_coord * scale) + 500;
+// 	pix->y = (y_coord * scale) + 200;
+// 	pix->z = ft_atoi(map_array[x_coord]) * scale;
+// 	pix = ft_isometric(pix);
+// 	// printf(" z = %f colour before = %x ",pix->z, pix->colour);//=============================================
+// 	return(pix);
 // }
 
-void	ft_fill_points(char **map_array, point *pixel, int row, int column)
+void	ft_fill_points(char **map_array, pixel *pix, int row, int col)
 {
 	int		i;
 
 	i = 0;
-	while (map_array[column][i] != ',' && map_array[column][i] != '\0')
+	while (map_array[col][i] != ',' && map_array[col][i] != '\0')
 		i++;
-	if (map_array[column][i] == '\0')
-		pixel->colour = 0xFFFFFFFF;
+	if (map_array[col][i] == '\0')
+		pix->colour = 0xFFFFFFFF;
 	else
-		pixel->colour = ft_colour(&map_array[column][i + 3]);
-	// printf(" z = %f colour after = %x\n",pixel->z, pixel->colour);//=============================================
-	pixel->z = ft_atoi(map_array[column]);
-	pixel = ft_isometric(pixel, row, column);
-	// printf(" z = %f colour before = %x ",pixel->z, pixel->colour);//=============================================
+		pix->colour = ft_colour(&map_array[col][i + 3]);
+	// printf(" z = %f colour after = %x\n",pix->z, pix->colour);//=============================================
+	pix->z = ft_atoi(map_array[col]);
+	pix = ft_isometric(pix, row, col);
+	// printf(" z = %f colour before = %x ",pix->z, pix->colour);//=============================================
 }
 
-void	ft_min_max(map_grid *grid, int row, int column)
+void	ft_min_max(map_grid *grid, int row, int col)
 {
-	if (grid->point_grid[row][column].x > grid->max_x)
-		grid->max_x = grid->point_grid[row][column].x;
-	if (grid->point_grid[row][column].y > grid->max_y)
-		grid->max_y = grid->point_grid[row][column].y;
-	if (grid->point_grid[row][column].x < grid->min_x)
-		grid->min_x = grid->point_grid[row][column].x;
-	if (grid->point_grid[row][column].y < grid->min_y)
-		grid->min_y = grid->point_grid[row][column].y;
+	if (grid->points[row][col].x > grid->max_x)
+		grid->max_x = grid->points[row][col].x;
+	if (grid->points[row][col].y > grid->max_y)
+		grid->max_y = grid->points[row][col].y;
+	if (grid->points[row][col].x < grid->min_x)
+		grid->min_x = grid->points[row][col].x;
+	if (grid->points[row][col].y < grid->min_y)
+		grid->min_y = grid->points[row][col].y;
 }
 
 map_grid	*ft_fill_grid(char **argv, map_grid *grid)
@@ -199,67 +198,70 @@ map_grid	*ft_fill_grid(char **argv, map_grid *grid)
 	char	*map_line;
 	char	**map_array;
 	int 	row;
-	int 	column;
+	int 	col;
 
 	map_line = NULL;
 	map_array = NULL;
 	row = 0;
-	column = 0;
+	col = 0;
 	fd = open(argv[1], O_RDONLY);
 	if (fd == -1)
 		return (NULL);
 		//error_free();
-	grid->point_grid = (point **)malloc((grid->height + 1) * sizeof(point *));
-	if (grid->point_grid == NULL)
+	grid->points = (pixel **)malloc((grid->height + 1) * sizeof(pixel *));
+	if (grid->points == NULL)
 		return (NULL);
 		//error_free();
 	while (row < grid->height)
 	{
 		map_line = get_next_line(fd);
 		map_array = ft_split(map_line, ' ');
-		if (grid->point_grid == NULL)
+		if (grid->points == NULL)
 			return (NULL);
 			//error_free();
-		grid->point_grid[row] = (point *)malloc((grid->width + 1) * sizeof(point));
-		while (column < grid->width)
+		grid->points[row] = (pixel *)malloc((grid->width + 1) * sizeof(pixel));
+		while (col < grid->width)
 		{
-			ft_fill_points(map_array, &grid->point_grid[row][column] , row, column);
-			ft_min_max(grid, row, column);
+			ft_fill_points(map_array, &grid->points[row][col] , row, col);
+			ft_min_max(grid, row, col);
 			// ft_draw_lines(grid, i, j);
-			column++;
+			col++;
 		}
-		// grid->point_grid[row][column] = NULL;// ????????????????????????????????????????????????????
+		// grid->points[row][col] = NULL;// ????????????????????????????????????????????????????
 		row++;
-		column = 0;
+		col = 0;
 		free(map_line);
 		free(map_array);
 	}
-	grid->point_grid[row] = NULL;
+	grid->points[row] = NULL;
 	close(fd);
 	return (grid);
 }
 
-int	ft_strnum(char const *s, char c, int strnum)
+int	ft_width_count(char const *s, int width)
 {
 	int	i;
 
 	i = 0;
-	while (s[i] == c && s[i] != '\0')
+	while (s[i] == ' ' && s[i] != '\0')
 		i++;
 	if (s[i] == '\0')
 		return (0);
-	if (c == '\0' && i > 0)
-		return (1);
-	strnum = 1;
-	while (s[i] != '\0')
+	while (s[i] != '\0' && s[i] != '\n')
 	{
-		if (s[i] == c && i != 0 && s[i - 1] != c)
-			strnum++;
-		if (s[i] == c && s[i + 1] == '\0')
-			strnum--;
-		i++;
+		if (s[i] != ' ')
+		{
+			width++;
+			while (s[i] != ' ' && s[i] != '\0' && s[i] != '\n')
+				i++;
+		}
+		else
+		{
+			while (s[i] == ' ')
+				i++;
+		}
 	}
-	return (strnum);
+	return (width);
 }
 
 map_grid	*ft_grid_size(char **argv, map_grid *grid)
@@ -274,14 +276,14 @@ map_grid	*ft_grid_size(char **argv, map_grid *grid)
 	if (fd == -1)
 		return (NULL);
 	map_line = get_next_line(fd);
-	grid->width = ft_strnum(map_line, ' ', 0);
+	grid->width = ft_width_count(map_line, 0);
 	while (1)
 	{
 		grid->height++;
 		map_line = get_next_line(fd);
 		if (map_line == NULL)
 			break;
-		// if (ft_strnum(map_line, ' ', 0) != grid->width)
+		// if (ft_num_count(map_line, 0) != grid->width)
 			// ft_error();
 	}
 	close(fd);
@@ -300,227 +302,192 @@ map_grid	*ft_make_grid(char **argv, map_grid *grid)
 	grid = ft_grid_size(argv, grid);
 	grid = ft_fill_grid(argv, grid);
 
-	// printf("grid->height = %d  |  grid->width = %d \n", grid->height, grid->width);
+	printf("in make grid    =  grid->height = %d  |  grid->width = %d \n", grid->height, grid->width);
 
 	return (grid);
 }
 
-int	ft_scale(map_grid *grid, float scale, int img_dim)
+void	ft_scale(map_grid *grid, int img_dim)
 {
 	int		row;
-	int		column;
+	int		col;
 	float	offset;
 
 	row = 0;
-	column = 0;
+	col = 0;
 	if (grid->max_x - grid->min_x > grid->max_y - grid->min_y)
-		scale = (img_dim - 100) / (grid->max_x - grid->min_x);
+		grid->scale = (img_dim - 100) / (grid->max_x - grid->min_x);
 	else
-		scale = (img_dim - 100) / (grid->max_y - grid->min_y);
+		grid->scale = (img_dim - 100) / (grid->max_y - grid->min_y);
 	// printf("scale = %f  |  x diff = %f  |   y diff = %f   \n", scale , grid->max_x - grid->min_x, grid->max_y - grid->min_y);
 	while (row < grid->height)
 	{
-		while (column < grid->width)
+		while (col < grid->width)
 		{
-			offset = (img_dim - 100 - (scale * (grid->max_x - grid->min_x))) / 2;
-			// printf("BEFORE x = %f  |  y = %f  |  colour = %x\n", grid->point_grid[row][column].x, grid->point_grid[row][column].y, grid->point_grid[row][column].colour);
-			grid->point_grid[row][column].x = (scale * (grid->point_grid[row][column].x - grid->min_x)) + offset;
-			offset = (img_dim - 100 - (scale * (grid->max_y - grid->min_y))) / 2;
-			grid->point_grid[row][column].y = (scale * (grid->point_grid[row][column].y - grid->min_y)) + offset;
-			// printf("AFTER x = %f  |  y = %f  |  colour = %x\n", grid->point_grid[row][column].x, grid->point_grid[row][column].y, grid->point_grid[row][column].colour);
-			column++;
+			offset = (img_dim - 100 - (grid->scale * (grid->max_x - grid->min_x))) / 2;
+			// printf("BEFORE x = %f  |  y = %f  |  colour = %x\n", grid->points[row][col].x, grid->points[row][col].y, grid->points[row][col].colour);
+			grid->points[row][col].x = (grid->scale * (grid->points[row][col].x - grid->min_x)) + offset;
+			offset = (img_dim - 100 - (grid->scale * (grid->max_y - grid->min_y))) / 2;
+			grid->points[row][col].y = (grid->scale * (grid->points[row][col].y - grid->min_y)) + offset;
+			// printf("AFTER x = %f  |  y = %f  |  colour = %x\n", grid->points[row][col].x, grid->points[row][col].y, grid->points[row][col].colour);
+			col++;
 		}
 		row++;
-		column = 0;
-	}
-	return (scale);
-}
-
-void	ft_draw_line_back(map_grid *grid, int row, int column, mlx_image_t *img)
-{
-	int		dx;
-	int		dy;
-	int		f;
-	int		x;
-	int		y;
-	
-	dx = (int)grid->point_grid[row][column].x - (int)grid->point_grid[row][column - 1].x;
-	dy = (int)grid->point_grid[row][column].y - (int)grid->point_grid[row][column - 1].y;
-	x = (int)grid->point_grid[row][column - 1].x;
-	y = (int)grid->point_grid[row][column - 1].y;
-	
-	// printf("\n\nBACK -> x-1 = %d  x = %d   |   y-1 = %d  y = %d \n", (int)grid->point_grid[row][column - 1].x, (int)grid->point_grid[row][column].x, (int)grid->point_grid[row][column - 1].y, (int)grid->point_grid[row][column].y);
-	// printf("x = %d  dx = %d   |   y = %d  dy = %d  |  row = %d  column = %d\n", x, dx, y, dy, row, column);
-
-	if (dy < 0 && dx > (-1 * dy))
-	{
-		f = dx / 2;
-		while (x + 1 < (int)grid->point_grid[row][column].x)
-		{
-			x++;
-			f = f + dy;
-			if (f < 0)
-			{
-				f = f + dx;
-				y--;
-			}
-			// printf("(a) x = %d  y = %d | ", x, y);
-			mlx_put_pixel(img, x, y, 0xFFFFFFFF);
-		}
-	}
-	else if (dy < 0 && dx < (-1 * dy))
-	{
-		f = -dy / 2;
-		while (y - 1 > (int)grid->point_grid[row][column].y)
-		{
-			y--;
-			f = f - dx;
-			if (f < 0)
-			{
-				f = f - dy;
-				x++;
-			}
-			// printf("(b) x = %d  y = %d | ", x, y);
-			mlx_put_pixel(img, x, y, 0xFFFFFFFF);
-		}
-	}
-	else if (dx > dy)
-	{
-		f = dx / 2;
-		while (x + 1 < (int)grid->point_grid[row][column].x)
-		{
-			x++;
-			f = f - dy;
-			if (f < 0)
-			{
-				f = f + dx;
-				y++;
-			}
-			// printf("(A) x = %d  y = %d | ", x, y);
-			mlx_put_pixel(img, x, y, 0xFFFFFFFF);
-		}
-	}
-	else
-	{
-		f = dy / 2;
-		while (y + 1 < (int)grid->point_grid[row][column].y)
-		{
-			y++;
-			f = f - dx;
-			if (f < 0)
-			{
-				f = f + dy;
-				x++;
-			}
-			// printf("(B) x = %d  y = %d | ", x, y);
-			mlx_put_pixel(img, x, y, 0xFFFFFFFF);
-		}
+		col = 0;
 	}
 }
 
-
-//need to change to bitshifting!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-uint32_t ft_line_colour_up(map_grid *grid, int row, int column, int x)
+uint32_t ft_line_colour(map_grid *grid, int row, int col, line_pixel line)
 {
-	uint32_t	pixel_colour;
-	uint32_t	dcolour;
-	float		dx;
-	float		colour_percent;
-
-	if (grid->point_grid[row][column].colour == grid->point_grid[row - 1][column].colour)
-		return(grid->point_grid[row][column].colour);
-	dcolour = grid->point_grid[row][column].colour - grid->point_grid[row - 1][column].colour;
-	dx = grid->point_grid[row][column].x - grid->point_grid[row - 1][column].x;
-	if (dx < 0)
-		dx *= -1;
-	colour_percent = (x - grid->point_grid[row][column].x) / dx;
-	printf("\n\n>>>>colour_percent = %f, dx = %f,  x = %d\n\n", colour_percent, dx, x);
-	pixel_colour = (dcolour * colour_percent) + grid->point_grid[row][column].colour;
-	printf("\n\n>>>>start col = %x, pix col = %x, end col = %x\n", grid->point_grid[row][column].colour, pixel_colour, grid->point_grid[row - 1][column].colour);
-	printf(">>>>start col = %d, pix col = %d, end col = %d,  dcolour = %d\n\n", grid->point_grid[row][column].colour, pixel_colour, grid->point_grid[row - 1][column].colour, dcolour);
-	return(pixel_colour);
+	if (line.r_or_c == 'r')
+	{
+		if (grid->points[row][col].colour == grid->points[row - 1][col].colour)
+			return (grid->points[row][col].colour);
+		if (grid->points[row][col].colour == 0xFFFFFFFF)
+			return (grid->points[row - 1][col].colour);
+		if (grid->points[row - 1][col].colour == 0xFFFFFFFF)
+			return (grid->points[row][col].colour);
+	}
+	else if (line.r_or_c == 'c')
+	{
+		if (grid->points[row][col].colour == grid->points[row][col - 1].colour)
+			return (grid->points[row][col].colour);
+		if (grid->points[row][col].colour == 0xFFFFFFFF)
+			return (grid->points[row][col - 1].colour);
+		if (grid->points[row][col - 1].colour == 0xFFFFFFFF)
+			return (grid->points[row][col].colour);
+	}
+	return(0xFFFFFFFF);
 }
 
-void	ft_draw_line_up(map_grid *grid, int row, int column, mlx_image_t *img)
+line_pixel	ft_make_line(map_grid *grid, int row, int col, char row_or_col)
 {
-	int		dx;
-	int		dy;
-	int		f;
-	int		x;
-	int		y;
+	line_pixel line;
 	
-	dx = (int)grid->point_grid[row - 1][column].x - (int)grid->point_grid[row][column].x;
-	dy = (int)grid->point_grid[row - 1][column].y - (int)grid->point_grid[row][column].y;
-	x = (int)grid->point_grid[row][column].x;
-	y = (int)grid->point_grid[row][column].y;
-	
-	// printf("\n\nUP -> x-1 = %d  x = %d   |   y-1 = %d  y = %d \n", (int)grid->point_grid[row - 1][column].x, (int)grid->point_grid[row][column].x, (int)grid->point_grid[row - 1][column].y, (int)grid->point_grid[row][column].y);
-	// printf("x = %d  dx = %d   |   y = %d  dy = %d  |  row = %d  column = %d\n", x, dx, y, dy, row, column);
+	if (row_or_col == 'c')
+	{
+		line.x = grid->points[row][col - 1].x;
+		line.y = grid->points[row][col - 1].y;
+		line.dx = grid->points[row][col].x - grid->points[row][col - 1].x;
+		line.dy = grid->points[row][col].y - grid->points[row][col - 1].y;
+		line.r_or_c = 'c';
+	}
+	if (row_or_col == 'r')
+	{
+		line.x = grid->points[row][col].x;
+		line.y = grid->points[row][col].y;
+		line.dx = grid->points[row - 1][col].x - grid->points[row][col].x;
+		line.dy = grid->points[row - 1][col].y - grid->points[row][col].y;
+		line.r_or_c = 'r';
+	}
+	line.f = 0;
+	line.colour = ft_line_colour(grid, row, col, line);
+	return (line);
+}
 
-	if (dy < 0 && dx > (-1 * dy))
+void	ft_up_xg(line_pixel line, int end, mlx_image_t *img)
+{
+	line.f = line.dx / 2;
+	while (line.x + 1 < end)
 	{
-		f = dx / 2;
-		while (x + 1 < (int)grid->point_grid[row - 1][column].x)
+		line.x++;
+		line.f = line.f + line.dy;
+		if (line.f < 0)
 		{
-			x++;
-			f = f + dy;
-			if (f < 0)
-			{
-				f = f + dx;
-				y--;
-			}
-			// printf("(a) x = %d  y = %d | ", x, y);
-			mlx_put_pixel(img, x, y, ft_line_colour_up(grid, row, column, x));
+			line.f = line.f + line.dx;
+			line.y--;
 		}
+		mlx_put_pixel(img, line.x, line.y, line.colour);
 	}
-	else if (dy < 0 && dx < (-1 * dy))
+}
+
+void	ft_up_yg(line_pixel line, int end, mlx_image_t *img)
+{
+	line.f = -line.dy / 2;
+	while (line.y - 1 > end)
 	{
-		f = -dy / 2;
-		while (y - 1 > (int)grid->point_grid[row - 1][column].y)
+		line.y--;
+		line.f = line.f - line.dx;
+		if (line.f < 0)
 		{
-			y--;
-			f = f - dx;
-			if (f < 0)
-			{
-				f = f - dy;
-				x++;
-			}
-			// printf("(b) x = %d  y = %d | ", x, y);
-			mlx_put_pixel(img, x, y, ft_line_colour_up(grid, row, column, x));
+			line.f = line.f - line.dy;
+			line.x++;
 		}
+		mlx_put_pixel(img, line.x, line.y, line.colour);
 	}
-	else if (dx > dy)
+}
+
+void	ft_down_xg(line_pixel line, int end, mlx_image_t *img)
+{
+	line.f = line.dx / 2;
+	while (line.x + 1 < end)
 	{
-		f = dx / 2;
-		while (x + 1 < (int)grid->point_grid[row - 1][column].x)
+		line.x++;
+		line.f = line.f - line.dy;
+		if (line.f < 0)
 		{
-			x++;
-			f = f - dy;
-			if (f < 0)
-			{
-				f = f + dx;
-				y++;
-			}
-			// printf("(A) x = %d  y = %d | ", x, y);
-			mlx_put_pixel(img, x, y, ft_line_colour_up(grid, row, column, x));
+			line.f = line.f + line.dx;
+			line.y++;
 		}
+		mlx_put_pixel(img, line.x, line.y, line.colour);
 	}
-	else
+}
+
+void	ft_down_yg(line_pixel line, int end, mlx_image_t *img)
+{
+	line.f = line.dy / 2;
+	while (line.y + 1 < end)
 	{
-		f = dy / 2;
-		while (y + 1 < (int)grid->point_grid[row - 1][column].y)
+		line.y++;
+		line.f = line.f - line.dx;
+		if (line.f < 0)
 		{
-			y++;
-			f = f - dx;
-			if (f < 0)
-			{
-				f = f + dy;
-				x++;
-			}
-			// printf("(B) x = %d  y = %d | ", x, y);
-			mlx_put_pixel(img, x, y, ft_line_colour_up(grid, row, column, x));
+			line.f = line.f + line.dy;
+			line.x++;
 		}
+		mlx_put_pixel(img, line.x, line.y, line.colour);
 	}
+}
+		
+void	ft_draw_line(map_grid *grid, int row, int col, mlx_image_t *img)
+{
+	line_pixel	line;
+	if (col > 0)
+	{
+		line = ft_make_line(grid, row, col, 'c');
+		if (line.dy < 0 && line.dx > (-1 * line.dy))
+			ft_up_xg(line, (int)grid->points[row][col].x, img);
+		else if (line.dy < 0 && line.dx < (-1 * line.dy))
+			ft_up_yg(line, (int)grid->points[row][col].y, img);
+		else if (line.dx > line.dy)
+			ft_down_xg(line, (int)grid->points[row][col].x, img);
+		else
+			ft_down_yg(line, (int)grid->points[row][col].y, img);
+	}
+	if (row > 0)
+	{
+		line = ft_make_line(grid, row, col, 'r');
+		if (line.dy < 0 && line.dx > (-1 * line.dy))
+			ft_up_xg(line, (int)grid->points[row - 1][col].x, img);
+		else if (line.dy < 0 && line.dx < (-1 * line.dy))
+			ft_up_yg(line, (int)grid->points[row - 1][col].y, img);
+		else if (line.dx > line.dy)
+			ft_down_xg(line, (int)grid->points[row - 1][col].x, img);
+		else
+			ft_down_yg(line, (int)grid->points[row - 1][col].y, img);
+	}
+}
+
+void	ft_hooks(void* mlx)
+{
+	// if (keydata.key == MLX_KEY_ESCAPE && keydata.action == MLX_PRESS)
+	// 	mlx_terminate(mlx);
+	if (mlx_is_key_down((mlx_t *)mlx, MLX_KEY_ESCAPE))
+		mlx_close_window(mlx);
+	// if (mlx_is_key_down((mlx_t *)mlx, MLX_KEY_UP))
+	// 	ft_zoom_in();
+	// if (mlx_is_key_down((mlx_t *)mlx, MLX_KEY_DOWN))
+	// 	ft_zoom_out();
 }
 
 
@@ -529,19 +496,15 @@ int32_t	main(int argc, char **argv)
 
 	// ft_parse_map();
 
-	int		row;
-	int		column;
-
-	float		scale;
+	int			row;
+	int			col;
 	int32_t		img_dim;
-	// point	*pix;
+	// pixel	*pix;
 	map_grid	*grid;
 
-
 	row = 0;
-	column = 0;
+	col = 0;
 	img_dim = 1300;
-	scale = 1;
 	grid = NULL;
 
 	mlx_t*	mlx;
@@ -565,27 +528,23 @@ int32_t	main(int argc, char **argv)
 	// printf("grid->max_x = %f  |  grid->max_y = %f  |  grid->min_x = %f  |  grid->min_y = %f \n", grid->max_x, grid->max_y, grid->min_x, grid->min_y);
 
 
-	scale = ft_scale(grid, scale, img_dim);
+	ft_scale(grid, img_dim);
 	
 	// printf("grid->height = %d  |  grid->width = %d  |  scale = %f\n", grid->height, grid->width, scale);
 
 	
 	while (row < grid->height)
 	{
-		while (column < grid->width)
+		while (col < grid->width)
 		{
-			// printf("x = %f  |  y = %f  |  colour = %x\n", grid->point_grid[row][column].x, grid->point_grid[row][column].y, grid->point_grid[row][column].colour);
+			// printf("x = %f  |  y = %f  |  colour = %x\n", grid->points[row][col].x, grid->points[row][col].y, grid->points[row][col].colour);
 			
-			mlx_put_pixel(img, grid->point_grid[row][column].x, grid->point_grid[row][column].y, grid->point_grid[row][column].colour);
-			if (column > 0)
-				ft_draw_line_back(grid, row, column, img);
-			if (row > 0)
-				ft_draw_line_up(grid, row, column, img);
-			
-			column++;
+			mlx_put_pixel(img, grid->points[row][col].x, grid->points[row][col].y, grid->points[row][col].colour);
+			ft_draw_line(grid, row, col, img);
+			col++;
 		}
 		row++;
-		column = 0;
+		col = 0;
 	}
 	// fd = open(argv[1], O_RDONLY);
 	// if (fd == -1)
@@ -617,9 +576,9 @@ int32_t	main(int argc, char **argv)
 	if (!mlx_put_string(mlx, "scale", 50, 50))
 		ft_error();
 
+	mlx_loop_hook(mlx, &ft_hooks, mlx);
 	mlx_loop(mlx);
 
-	// mlx_new_window();
 
 	mlx_terminate(mlx);
 	// ft_free_all();
