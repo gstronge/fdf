@@ -6,7 +6,7 @@
 /*   By: gstronge <gstronge@student.42heilbronn.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/23 17:04:10 by gstronge          #+#    #+#             */
-/*   Updated: 2024/05/31 19:55:19 by gstronge         ###   ########.fr       */
+/*   Updated: 2024/06/03 14:36:36 by gstronge         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,12 +106,43 @@ y' = ((sqrt(6)/6) * (x + y)) - ((sqrt(3)/3) * z);
 
 #include <stdio.h>// --------- REMOVE ----------- REMOVE ----------- REMOVE ----------- 
 
+void	ft_free_all(map_grid *grid)
+{
+	int row;
+
+	row = 0;
+	if (grid && grid->points)
+	{		
+		while (row < grid->height)
+		{
+			if (grid->points[row])
+				free(grid->points[row]);
+			row++;
+		}
+	}
+	if (grid && grid->points)
+		free(grid->points);
+	if (grid)
+		free(grid);
+}
+
+void	ft_error_found(const char *message, int error_no, map_grid *grid)
+{
+	ft_free_all(grid);
+	errno = error_no;
+	perror(message);
+	exit(errno);
+}
 
 pixel	*ft_isometric(pixel *pix, int row, int col)
 {
-	pix->x = (sqrt(2)/2) * (col - row);//need to remove the sqrt function!!!!!!!!!!!
-	pix->y = ((sqrt(6)/6) * (col + row)) - ((sqrt(3)/3) * pix->z);//need to remove the sqrt function!
-	return (pix);
+	float	plan_x = col;
+	float	plan_y = row;
+
+	pix->x = (plan_x - plan_y) * cos(M_PI / 6);// =========== cos(30 deg) =============
+	pix->y = (plan_x + plan_y) * sin(M_PI / 6) - pix->z;// ========== sin(30 deg) ===========
+
+	return pix;
 }
 
 uint32_t	ft_colour(char *str)
@@ -167,8 +198,11 @@ void	ft_min_max(map_grid *grid, int row, int col)
 		grid->min_y = grid->points[row][col].y;
 }
 
-void	ft_free_split(char **map_array, int i)
+void	ft_free_split(char **map_array)
 {
+	int	i;
+
+	i = 0;
 	while (map_array[i] != NULL)
 	{
 		free(map_array[i]);
@@ -178,54 +212,59 @@ void	ft_free_split(char **map_array, int i)
 	free(map_array);
 }
 
-map_grid	*ft_fill_grid(char **argv, map_grid *grid)
+void	ft_func(map_grid *grid, int fd, char ** split, int row)
 {
-	int		fd;
-	char	*map_line;
-	char	**map_array;
-	int 	row;
-	int 	col;
+	int	col;
 
-	map_line = NULL;
-	map_array = NULL;
-	row = 0;
 	col = 0;
-	fd = open(argv[1], O_RDONLY);
-	if (fd == -1)
-		return (NULL);
-		//error_free();
-	grid->points = (pixel **)malloc((grid->height + 1) * sizeof(pixel *));
-	if (grid->points == NULL)
-		return (NULL);
-		//error_free();
-	while (row < grid->height)
+	grid->points[row] = (pixel *)malloc((grid->width) * sizeof(pixel));
+	if (grid->points[row] == NULL)
 	{
-		map_line = get_next_line(fd);
-		map_array = ft_split(map_line, ' ');
-		if (grid->points == NULL)
-			return (NULL);
-			//error_free();
-		grid->points[row] = (pixel *)malloc((grid->width + 1) * sizeof(pixel));
-		while (col < grid->width)
-		{
-			ft_fill_points(map_array, &grid->points[row][col] , row, col);
-			ft_min_max(grid, row, col);
-			col++;
-		}
-		row++;
-		col = 0;
-		free(map_line);
-		ft_free_split(map_array, 0);
+		close(fd);
+		free(split);
+		ft_error_found("malloc failed", errno, grid);
 	}
-	grid->points[row] = NULL;
-	close(fd);
-	return (grid);
+	while (col < grid->width)
+	{
+		ft_fill_points(split, &grid->points[row][col] , row, col);
+		ft_min_max(grid, row, col);
+		col++;
+	}	
 }
 
-int	ft_width_count(char const *s, int width)
+void	ft_fill_grid(char **argv, map_grid *grid, char *map_row, char **split)
 {
+	int		fd;
+	int 	row;
+
+	row = 0;
+	fd = open(argv[1], O_RDONLY);
+	if (fd == -1)
+		ft_error_found("file can't be opened", errno, grid);
+	grid->points = (pixel **)malloc((grid->height) * sizeof(pixel *));
+	if (grid->points == NULL)
+	{
+		close(fd);
+		ft_error_found("malloc failed", errno, grid);
+	}
+		while (row < grid->height)
+	{
+		map_row = get_next_line(fd);
+		split = ft_split(map_row, ' ');
+		free(map_row);
+		ft_func(grid, fd, split, row);
+		ft_free_split(split);
+		row++;
+	}
+	close(fd);
+}
+
+int	ft_width_count(char const *s)
+{
+	int width;
 	int	i;
 
+	width = 0;
 	i = 0;
 	while (s[i] == ' ' && s[i] != '\0')
 		i++;
@@ -248,39 +287,35 @@ int	ft_width_count(char const *s, int width)
 	return (width);
 }
 
-map_grid	*ft_grid_size(char **argv, map_grid *grid)
+void	ft_grid_size(char **argv, map_grid *grid, char *map_row)
 {
 	int		fd;
-	char	*map_line;
 	
 	fd = 0;
-	map_line = NULL;
-	grid->height = 0;
 	fd = open(argv[1], O_RDONLY);
 	if (fd == -1)
-		return (NULL);
-	map_line = get_next_line(fd);
-	grid->width = ft_width_count(map_line, 0);
-	free(map_line);
+		ft_error_found("file can't be opened", errno, grid);
+	map_row = get_next_line(fd);
+	grid->width = ft_width_count(map_row);
+	free(map_row);
 	while (1)
 	{
 		grid->height++;
-		map_line = get_next_line(fd);
-		if (map_line == NULL)
+		map_row = get_next_line(fd);
+		if (map_row == NULL)
 			break;
-		// printf("%d, %d\n", ft_width_count(map_line, 0), grid->height);
-		// if (ft_width_count(map_line, 0) != grid->width)
-		// {
-		// 	perror("===================== map is incorrectly formatted ========================");//pylone
-		// 	exit(EXIT_FAILURE);
-		// }
-		free(map_line);
+		if (ft_width_count(map_row) != grid->width)
+		{
+			free(map_row);
+			close(fd);
+			ft_error_found("incorrect map formatting", 22, grid);
+		}
+		free(map_row);
 	}
 	close(fd);
-	return (grid);
 }
 
-void	ft_scale(map_grid *grid, int32_t img_dim)
+void	ft_scale(map_grid *grid, int32_t dims)
 {
 	int		row;
 	int		col;
@@ -289,16 +324,16 @@ void	ft_scale(map_grid *grid, int32_t img_dim)
 	row = 0;
 	col = 0;
 	if (grid->max_x - grid->min_x > grid->max_y - grid->min_y)
-		grid->scale = (img_dim - 100) / (grid->max_x - grid->min_x);
+		grid->scale = dims / (grid->max_x - grid->min_x);
 	else
-		grid->scale = (img_dim - 100) / (grid->max_y - grid->min_y);
+		grid->scale = dims / (grid->max_y - grid->min_y);
 	while (row < grid->height)
 	{
 		while (col < grid->width)
 		{
-			offset = (img_dim - 100 - (grid->scale * (grid->max_x - grid->min_x))) / 2;
+			offset = (dims - (grid->scale * (grid->max_x - grid->min_x))) / 2;
 			grid->points[row][col].x = (grid->scale * (grid->points[row][col].x - grid->min_x)) + offset;
-			offset = (img_dim - 100 - (grid->scale * (grid->max_y - grid->min_y))) / 2;
+			offset = (dims - (grid->scale * (grid->max_y - grid->min_y))) / 2;
 			grid->points[row][col].y = (grid->scale * (grid->points[row][col].y - grid->min_y)) + offset;
 			col++;
 		}
@@ -307,21 +342,26 @@ void	ft_scale(map_grid *grid, int32_t img_dim)
 	}
 }
 
-map_grid	*ft_make_grid(char **argv, map_grid *grid, int32_t img_dim)
+map_grid	*ft_make_grid(char **argv, map_grid *grid, int32_t window_size)
 {
+	char	*map_row;
+	char	**split;
+
+	map_row = NULL;
+	split = NULL;
 	grid = (map_grid *)malloc(sizeof(map_grid));
 	if (grid == NULL)
-		exit(EXIT_FAILURE);
+		exit(errno);
+	grid->points = NULL;
+	grid->width = 0;
+	grid->height = 0;
 	grid->max_x = FLT_MIN;
 	grid->max_y = FLT_MIN;
-	grid->min_x = FLT_MAX;	
-	grid->min_y = FLT_MAX;	
-	grid = ft_grid_size(argv, grid);
-	grid = ft_fill_grid(argv, grid);
-	ft_scale(grid, img_dim);
-
-	if (grid == NULL)
-		exit (EXIT_FAILURE);
+	grid->min_x = FLT_MAX;
+	grid->min_y = FLT_MAX;
+	ft_grid_size(argv, grid, map_row);
+	ft_fill_grid(argv, grid, map_row, split);
+	ft_scale(grid, window_size - 100);
 	return (grid);
 }
 
@@ -468,50 +508,29 @@ void	ft_draw_line(map_grid *grid, int row, int col, mlx_image_t *img)
 
 void	ft_error_checks(int argc, char **argv)
 {
-	int		fd;
-	char	buffer[5];
-	int	i;
+	int			fd;
+	char		buffer[1];
+	map_grid	*grid;
+	int			i;
 
+	grid = NULL;
 	i = 0;
-	if (argc != 2)// ================== print error messages on ALL ======================
-		exit(EXIT_FAILURE);
+	if (argc != 2)
+		ft_error_found("usage: ./executable \"filename.fdf\"", 22, grid);
 	while (argv[1][i] != '.' && argv[1][i] != '\0')
 		i++;
 	if (ft_strncmp(&argv[1][i], ".fdf", 5))
-	{
-		errno = 22;
-		perror("must be a .fdf file");
-		exit(EXIT_FAILURE);
-	}
+		ft_error_found("file type must be .fdf", 22, grid);
 	fd = open(argv[1], O_RDONLY);
 	if (fd == -1)
+		ft_error_found("file can't be opened", errno, grid);
+	if (read(fd, buffer, 1) <= 0)
 	{
-		perror("file can't be opened");
-		exit(EXIT_FAILURE);
-	}
-	if (read(fd, buffer, 5) <= 0)
-	{
-		perror("file can't be read");
 		close(fd);
-		exit(EXIT_FAILURE);	
+		ft_error_found("file can't be read or is empty", errno, grid);
 	}
 	close(fd);
 }
-
-void	ft_free_all(map_grid *grid, int row)
-{
-	while (row < grid->height)
-	{
-		if (grid->points[row])
-			free(grid->points[row]);
-		row++;
-	}
-	if (grid->points)
-		free(grid->points);
-	if (grid)
-		free(grid);
-}
-
 
 void	keypress(mlx_key_data_t keydata, void *param)
 {
@@ -527,25 +546,25 @@ void	keypress(mlx_key_data_t keydata, void *param)
 static void ft_error(map_grid *grid)
 {
 	if (grid)
-		ft_free_all(grid, 0);
+		ft_free_all(grid);
 	perror(mlx_strerror(mlx_errno));// is this correct ======================================
 }
 
-void	ft_make_image(map_grid *grid, int img_dim)
+void	ft_make_image(map_grid *grid, int window_size)
 {
 	int	row;
 	int	col;
 	
 	row = 0;
 	col = 0;
-	grid->img = mlx_new_image(grid->mlx, img_dim, img_dim);
+	grid->img = mlx_new_image(grid->mlx, window_size, window_size);
 	if (!grid->img)
 		ft_error(grid);
 	while (row < grid->height)
 	{
 		while (col < grid->width)
 		{
-			if (grid->points[row][col].x >= 0 && grid->points[row][col].x <= img_dim && grid->points[row][col].y >= 0 && grid->points[row][col].y <= img_dim)
+			if (grid->points[row][col].x >= 0 && grid->points[row][col].x <= window_size && grid->points[row][col].y >= 0 && grid->points[row][col].y <= window_size)
 				mlx_put_pixel(grid->img, round(grid->points[row][col].x), round(grid->points[row][col].y), grid->points[row][col].colour);
 			ft_draw_line(grid, row, col, grid->img);
 			col++;
@@ -555,30 +574,32 @@ void	ft_make_image(map_grid *grid, int img_dim)
 	}
 }
 
-// void	leaks(void)
+// void	leaks(void)// ----------------------------- REMOVE ---------------------------------
 // {
 // 	system("leaks fdf");
-// }
+// }// ----------------------------- REMOVE --------------------------------- ---------------
+
 
 int32_t	main(int argc, char **argv)
 {
 	map_grid	*grid;
-	int			img_dim;
+	int			window_size;
 
 	grid = NULL;
-	img_dim = 1200;
+	window_size = 1200;
+	// atexit(leaks);// ----------------------------- REMOVE ---------------------------------
 	ft_error_checks(argc, argv);
-	grid = ft_make_grid(argv, grid, img_dim);
+	grid = ft_make_grid(argv, grid, window_size);
 	mlx_set_setting(MLX_MAXIMIZED, false);
-	grid->mlx = mlx_init(img_dim, img_dim, "FDF - MAP", true);
+	grid->mlx = mlx_init(window_size, window_size, "FDF - MAP", false);
 	if (!grid->mlx)
 		ft_error(grid);
-	ft_make_image(grid, img_dim);
+	ft_make_image(grid, window_size);
 	if (mlx_image_to_window(grid->mlx, grid->img, 50, 50) < 0)
 		ft_error(grid);
 	mlx_key_hook(grid->mlx, keypress, grid);
 	mlx_loop(grid->mlx);
 	mlx_terminate(grid->mlx);
-	ft_free_all(grid, 0);
+	ft_free_all(grid);
 	return (EXIT_SUCCESS);
 }
