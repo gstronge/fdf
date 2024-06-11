@@ -6,7 +6,7 @@
 /*   By: gstronge <gstronge@student.42heilbronn.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/23 17:04:10 by gstronge          #+#    #+#             */
-/*   Updated: 2024/06/03 14:36:36 by gstronge         ###   ########.fr       */
+/*   Updated: 2024/06/11 20:10:19 by gstronge         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,27 +106,35 @@ y' = ((sqrt(6)/6) * (x + y)) - ((sqrt(3)/3) * z);
 
 #include <stdio.h>// --------- REMOVE ----------- REMOVE ----------- REMOVE ----------- 
 
-void	ft_free_all(map_grid *grid)
+void	ft_free_all(t_map *grid)
 {
-	int row;
+	int	row;
+	int	col;
 
 	row = 0;
+	col = 0;
 	if (grid && grid->points)
-	{		
+	{
 		while (row < grid->height)
 		{
+			while (grid->points[row] && col < grid->width)
+			{
+				if (grid->points[row][col].colour_pix)
+					free(grid->points[row][col].colour_pix);
+				col++;
+			}
 			if (grid->points[row])
 				free(grid->points[row]);
+			col = 0;
 			row++;
 		}
-	}
-	if (grid && grid->points)
 		free(grid->points);
+	}
 	if (grid)
 		free(grid);
 }
 
-void	ft_error_found(const char *message, int error_no, map_grid *grid)
+void	ft_error_found(const char *message, int error_no, t_map *grid)
 {
 	ft_free_all(grid);
 	errno = error_no;
@@ -134,18 +142,42 @@ void	ft_error_found(const char *message, int error_no, map_grid *grid)
 	exit(errno);
 }
 
-pixel	*ft_isometric(pixel *pix, int row, int col)
+void	ft_error_checks(int argc, char **argv)
+{
+	int			fd;
+	char		buffer[1];
+	t_map	*grid;
+	int			i;
+
+	grid = NULL;
+	i = 0;
+	if (argc != 2)
+		ft_error_found("usage: ./executable \"filename.fdf\"", 22, grid);
+	while (argv[1][i] != '.' && argv[1][i] != '\0')
+		i++;
+	if (ft_strncmp(&argv[1][i], ".fdf", 5))
+		ft_error_found("file type must be .fdf", 22, grid);
+	fd = open(argv[1], O_RDONLY);
+	if (fd == -1)
+		ft_error_found("file can't be opened", errno, grid);
+	if (read(fd, buffer, 1) <= 0)
+	{
+		close(fd);
+		ft_error_found("file can't be read or is empty", errno, grid);
+	}
+	close(fd);
+}
+
+void	ft_isometric(t_pixel *pix, int row, int col)
 {
 	float	plan_x = col;
 	float	plan_y = row;
 
 	pix->x = (plan_x - plan_y) * cos(M_PI / 6);// =========== cos(30 deg) =============
 	pix->y = (plan_x + plan_y) * sin(M_PI / 6) - pix->z;// ========== sin(30 deg) ===========
-
-	return pix;
 }
 
-uint32_t	ft_colour(char *str)
+uint32_t	ft_hex_to_int(char *str)
 {
 	uint32_t	colour;
 	int			i;
@@ -154,39 +186,70 @@ uint32_t	ft_colour(char *str)
 	i = 0;
 	while (i < 6 && str[i] != '\0')
 	{
-		if (str[i] <= '9')
+		if (str[i] <= '9' && str[i] >= '0' )
 			colour = (colour * 16) + str[i] - '0';
 		else if (str[i] <= 'F' && str[i] >= 'A')
 			colour = (colour * 16) + str[i] - 'A' + 10;
-			else if (str[i] <= 'f' && str[i] >= 'a')
+		else if (str[i] <= 'f' && str[i] >= 'a')
 			colour = (colour * 16) + str[i] - 'a' + 10;
 		i++;	
 	}
-	while (i < 8)
-	{
-		colour = colour << 4;
-		i++;
-	}
+	colour = colour << 8;
 	colour += 255;
 	return (colour);
 }
 
-void	ft_fill_points(char **map_array, pixel *pix, int row, int col)
+void	ft_hex_to_str(t_map *grid, int row, int col, char* str)
 {
-	int		i;
+	int	len;
+	int	j;
+	int	i;
 
+	len = 0;
+	j = 0;
+	i = 0;
+	len = ft_strlen(str);
+	grid->points[row][col].colour_pix = (char *)malloc(7 * sizeof(char));
+	if (grid->points[row][col].colour_pix == NULL)
+		ft_error_found("malloc error", errno, grid);
+	while (i < 6 - len)
+	{
+		grid->points[row][col].colour_pix[i] = '0';
+		i++;
+	}
+	while (i < 6)
+	{
+		grid->points[row][col].colour_pix[i] = str[j];
+		j++;
+		i++;
+	}
+	grid->points[row][col].colour_pix[i] = '\0';
+}
+
+void	ft_fill_points(char **map_array, t_map *grid, int row, int col)
+{
+	int	len;
+	int	i;
+
+	len = 0;
 	i = 0;
 	while (map_array[col][i] != ',' && map_array[col][i] != '\0')
 		i++;
 	if (map_array[col][i] == '\0')
-		pix->colour = 0xFFFFFFFF;
+		grid->points[row][col].colour_pix = ft_strdup("FFFFFF");
 	else
-		pix->colour = ft_colour(&map_array[col][i + 3]);
-	pix->z = ft_atoi(map_array[col]);
-	pix = ft_isometric(pix, row, col);
+	{
+		len = ft_strlen(&map_array[col][i + 3]);
+		if (len == 6)
+			grid->points[row][col].colour_pix = ft_strdup(&map_array[col][i + 3]);
+		else 
+			ft_hex_to_str(grid, row, col, &map_array[col][i + 3]);
+	}
+	grid->points[row][col].z = ft_atoi(map_array[col]);
+	ft_isometric(&(grid->points[row][col]), row, col);
 }
 
-void	ft_min_max(map_grid *grid, int row, int col)
+void	ft_min_max(t_map *grid, int row, int col)
 {
 	if (grid->points[row][col].x > grid->max_x)
 		grid->max_x = grid->points[row][col].x;
@@ -212,12 +275,12 @@ void	ft_free_split(char **map_array)
 	free(map_array);
 }
 
-void	ft_func(map_grid *grid, int fd, char ** split, int row)
+void	ft_parse_points(t_map *grid, int fd, char ** split, int row)
 {
 	int	col;
 
 	col = 0;
-	grid->points[row] = (pixel *)malloc((grid->width) * sizeof(pixel));
+	grid->points[row] = (t_pixel *)malloc((grid->width) * sizeof(t_pixel));
 	if (grid->points[row] == NULL)
 	{
 		close(fd);
@@ -226,13 +289,13 @@ void	ft_func(map_grid *grid, int fd, char ** split, int row)
 	}
 	while (col < grid->width)
 	{
-		ft_fill_points(split, &grid->points[row][col] , row, col);
+		ft_fill_points(split, grid, row, col);
 		ft_min_max(grid, row, col);
 		col++;
 	}	
 }
 
-void	ft_fill_grid(char **argv, map_grid *grid, char *map_row, char **split)
+void	ft_fill_grid(char **argv, t_map *grid, char *map_row, char **split)
 {
 	int		fd;
 	int 	row;
@@ -241,7 +304,7 @@ void	ft_fill_grid(char **argv, map_grid *grid, char *map_row, char **split)
 	fd = open(argv[1], O_RDONLY);
 	if (fd == -1)
 		ft_error_found("file can't be opened", errno, grid);
-	grid->points = (pixel **)malloc((grid->height) * sizeof(pixel *));
+	grid->points = (t_pixel **)malloc((grid->height) * sizeof(t_pixel *));
 	if (grid->points == NULL)
 	{
 		close(fd);
@@ -252,7 +315,7 @@ void	ft_fill_grid(char **argv, map_grid *grid, char *map_row, char **split)
 		map_row = get_next_line(fd);
 		split = ft_split(map_row, ' ');
 		free(map_row);
-		ft_func(grid, fd, split, row);
+		ft_parse_points(grid, fd, split, row);
 		ft_free_split(split);
 		row++;
 	}
@@ -287,7 +350,7 @@ int	ft_width_count(char const *s)
 	return (width);
 }
 
-void	ft_grid_size(char **argv, map_grid *grid, char *map_row)
+void	ft_grid_size(char **argv, t_map *grid, char *map_row)
 {
 	int		fd;
 	
@@ -315,7 +378,7 @@ void	ft_grid_size(char **argv, map_grid *grid, char *map_row)
 	close(fd);
 }
 
-void	ft_scale(map_grid *grid, int32_t dims)
+void	ft_scale(t_map *grid, int32_t dims)
 {
 	int		row;
 	int		col;
@@ -342,14 +405,14 @@ void	ft_scale(map_grid *grid, int32_t dims)
 	}
 }
 
-map_grid	*ft_make_grid(char **argv, map_grid *grid, int32_t window_size)
+t_map	*ft_make_grid(char **argv, t_map *grid, int32_t window_size)
 {
 	char	*map_row;
 	char	**split;
 
 	map_row = NULL;
 	split = NULL;
-	grid = (map_grid *)malloc(sizeof(map_grid));
+	grid = (t_map *)malloc(sizeof(t_map));
 	if (grid == NULL)
 		exit(errno);
 	grid->points = NULL;
@@ -365,32 +428,96 @@ map_grid	*ft_make_grid(char **argv, map_grid *grid, int32_t window_size)
 	return (grid);
 }
 
-uint32_t ft_line_colour(map_grid *grid, int row, int col, line_pixel line)
+
+char	*ft_make_byte(t_map *grid, char *str, char *byte)
 {
+	if (byte == NULL)
+	{		
+		byte = (char *)malloc(3 * sizeof(char));
+		if (byte == NULL)
+		{
+			free(byte);
+			ft_error_found("malloc error", errno, grid);
+		}
+	}
+	byte[0] = '\0';
+	byte[1] = '\0';
+	byte[2] = '\0';
+	if (str[0])
+		byte[0] = str[0];
+	if (str[1])
+		byte[1] = str[1];
+	return(byte);
+}
+
+uint32_t	ft_rgb_to_int(char *str)
+{
+	uint32_t	colour;
+	int			i;
+
+	colour = 0;
+	i = 0;
+	while (str[i] != '\0')
+	{
+		if (str[i] <= '9' && str[i] >= '0' )
+			colour = (colour * 16) + str[i] - '0';
+		else if (str[i] <= 'F' && str[i] >= 'A')
+			colour = (colour * 16) + str[i] - 'A' + 10;
+		else if (str[i] <= 'f' && str[i] >= 'a')
+			colour = (colour * 16) + str[i] - 'a' + 10;
+		i++;	
+	}
+	return (colour);
+}
+
+uint32_t	ft_av_colour(t_map *grid, char *clr_a, char *clr_b, uint32_t av_clr)
+{
+	char	*byte_a;
+	char	*byte_b;
+	int		i;
+
+	i = 0;
+	byte_a = NULL;
+	byte_b = NULL;
+	while (i < 6 && (clr_a[i] != '\0' || clr_b[i] != '\0'))
+	{
+		byte_a = ft_make_byte(grid, &clr_a[i], byte_a);
+		byte_b = ft_make_byte(grid, &clr_b[i], byte_b);
+		av_clr = av_clr << 8 | (ft_rgb_to_int(byte_a) + ft_rgb_to_int(byte_b))/2;
+		i += 2;
+	}
+	av_clr = av_clr << 8;
+	av_clr += 255;
+	free(byte_a);
+	free(byte_b);
+	return (av_clr);
+}
+
+uint32_t ft_line_colour(t_map *grid, int row, int col, t_line_pixel line)
+{
+	uint32_t	colour;
+
+	colour = 0;
 	if (line.r_or_c == 'r')
 	{
-		if (grid->points[row][col].colour == grid->points[row - 1][col].colour)
-			return (grid->points[row][col].colour);
-		if (grid->points[row][col].colour == 0xFFFFFFFF)
-			return (grid->points[row - 1][col].colour);
-		if (grid->points[row - 1][col].colour == 0xFFFFFFFF)
-			return (grid->points[row][col].colour);
+		if (!ft_strncmp(grid->points[row][col].colour_pix, grid->points[row - 1][col].colour_pix, 8))
+			colour = ft_hex_to_int(grid->points[row][col].colour_pix);
+		else
+			colour = ft_av_colour(grid, grid->points[row][col].colour_pix, grid->points[row - 1][col].colour_pix, colour);
 	}
 	else if (line.r_or_c == 'c')
 	{
-		if (grid->points[row][col].colour == grid->points[row][col - 1].colour)
-			return (grid->points[row][col].colour);
-		if (grid->points[row][col].colour == 0xFFFFFFFF)
-			return (grid->points[row][col - 1].colour);
-		if (grid->points[row][col - 1].colour == 0xFFFFFFFF)
-			return (grid->points[row][col].colour);
+		if (!ft_strncmp(grid->points[row][col].colour_pix, grid->points[row][col - 1].colour_pix, 8))
+			colour = ft_hex_to_int(grid->points[row][col].colour_pix);
+		else
+			colour = ft_av_colour(grid, grid->points[row][col].colour_pix, grid->points[row][col - 1].colour_pix, colour);
 	}
-	return(0xFFFFFFFF);
+	return(colour);
 }
 
-line_pixel	ft_make_line(map_grid *grid, int row, int col, char row_or_col)
+t_line_pixel	ft_make_line(t_map *grid, int row, int col, char row_or_col)
 {
-	line_pixel line;
+	t_line_pixel line;
 	
 	if (row_or_col == 'c')
 	{
@@ -413,10 +540,10 @@ line_pixel	ft_make_line(map_grid *grid, int row, int col, char row_or_col)
 	return (line);
 }
 
-void	ft_up_xg(line_pixel line, int end, mlx_image_t *img)
+void	ft_up_xg(t_line_pixel line, int end, mlx_image_t *img)
 {
 	line.f = line.dx / 2;
-	while (line.x + 1 < end)
+	while (round(line.x) + 1 < end)
 	{
 		line.x++;
 		line.f = line.f + line.dy;
@@ -429,10 +556,10 @@ void	ft_up_xg(line_pixel line, int end, mlx_image_t *img)
 	}
 }
 
-void	ft_up_yg(line_pixel line, int end, mlx_image_t *img)
+void	ft_up_yg(t_line_pixel line, int end, mlx_image_t *img)
 {
 	line.f = -line.dy / 2;
-	while (line.y - 1 > end)
+	while (round(line.y) - 1 > end)
 	{
 		line.y--;
 		line.f = line.f - line.dx;
@@ -445,10 +572,10 @@ void	ft_up_yg(line_pixel line, int end, mlx_image_t *img)
 	}
 }
 
-void	ft_down_xg(line_pixel line, int end, mlx_image_t *img)
+void	ft_down_xg(t_line_pixel line, int end, mlx_image_t *img)
 {
 	line.f = line.dx / 2;
-	while (line.x + 1 < end)
+	while (round(line.x) + 1 < end)
 	{
 		line.x++;
 		line.f = line.f - line.dy;
@@ -461,10 +588,10 @@ void	ft_down_xg(line_pixel line, int end, mlx_image_t *img)
 	}
 }
 
-void	ft_down_yg(line_pixel line, int end, mlx_image_t *img)
+void	ft_down_yg(t_line_pixel line, int end, mlx_image_t *img)
 {
 	line.f = line.dy / 2;
-	while (line.y + 1 < end)
+	while (round(line.y) + 1 < end)
 	{
 		line.y++;
 		line.f = line.f - line.dx;
@@ -477,9 +604,9 @@ void	ft_down_yg(line_pixel line, int end, mlx_image_t *img)
 	}
 }
 		
-void	ft_draw_line(map_grid *grid, int row, int col, mlx_image_t *img)
+void	ft_draw_line(t_map *grid, int row, int col, mlx_image_t *img)
 {
-	line_pixel	line;
+	t_line_pixel	line;
 	if (col > 0)
 	{
 		line = ft_make_line(grid, row, col, 'c');
@@ -506,66 +633,25 @@ void	ft_draw_line(map_grid *grid, int row, int col, mlx_image_t *img)
 	}
 }
 
-void	ft_error_checks(int argc, char **argv)
+void	ft_make_image(t_map *grid, int window_size)
 {
-	int			fd;
-	char		buffer[1];
-	map_grid	*grid;
-	int			i;
+	uint32_t	colour;
+	int			row;
+	int			col;
 
-	grid = NULL;
-	i = 0;
-	if (argc != 2)
-		ft_error_found("usage: ./executable \"filename.fdf\"", 22, grid);
-	while (argv[1][i] != '.' && argv[1][i] != '\0')
-		i++;
-	if (ft_strncmp(&argv[1][i], ".fdf", 5))
-		ft_error_found("file type must be .fdf", 22, grid);
-	fd = open(argv[1], O_RDONLY);
-	if (fd == -1)
-		ft_error_found("file can't be opened", errno, grid);
-	if (read(fd, buffer, 1) <= 0)
-	{
-		close(fd);
-		ft_error_found("file can't be read or is empty", errno, grid);
-	}
-	close(fd);
-}
-
-void	keypress(mlx_key_data_t keydata, void *param)
-{
-	map_grid   *grid;
-	
-    grid = param;
-	if (keydata.key == MLX_KEY_ESCAPE && keydata.action == MLX_PRESS)
-	{
-		mlx_close_window(grid->mlx);
-	}
-}
-
-static void ft_error(map_grid *grid)
-{
-	if (grid)
-		ft_free_all(grid);
-	perror(mlx_strerror(mlx_errno));// is this correct ======================================
-}
-
-void	ft_make_image(map_grid *grid, int window_size)
-{
-	int	row;
-	int	col;
-	
+	colour = 0;
 	row = 0;
 	col = 0;
 	grid->img = mlx_new_image(grid->mlx, window_size, window_size);
 	if (!grid->img)
-		ft_error(grid);
+		ft_error_found("error creating image", errno, grid);
 	while (row < grid->height)
 	{
 		while (col < grid->width)
 		{
+			colour = ft_hex_to_int(grid->points[row][col].colour_pix);
 			if (grid->points[row][col].x >= 0 && grid->points[row][col].x <= window_size && grid->points[row][col].y >= 0 && grid->points[row][col].y <= window_size)
-				mlx_put_pixel(grid->img, round(grid->points[row][col].x), round(grid->points[row][col].y), grid->points[row][col].colour);
+				mlx_put_pixel(grid->img, round(grid->points[row][col].x), round(grid->points[row][col].y), colour);
 			ft_draw_line(grid, row, col, grid->img);
 			col++;
 		}
@@ -574,29 +660,120 @@ void	ft_make_image(map_grid *grid, int window_size)
 	}
 }
 
-// void	leaks(void)// ----------------------------- REMOVE ---------------------------------
+// void	ft_scale(t_map *grid, float scale_adj)
 // {
-// 	system("leaks fdf");
-// }// ----------------------------- REMOVE --------------------------------- ---------------
+	
+// }
+
+void	ft_transform(t_map *grid, char direction, int row, int col)
+{
+	if (direction == 'u')
+		grid->points[row][col].y -= 10;
+	if (direction == 'd')
+		grid->points[row][col].y += 10;
+	if (direction == 'l')
+		grid->points[row][col].x -= 10;
+	if (direction == 'r')
+		grid->points[row][col].x += 10;
+}
+
+void	ft_transform_image(t_map *grid, int window_size, char direction)
+{
+	uint32_t	colour;
+	int			row;
+	int			col;
+
+	colour = 0;
+	row = 0;
+	col = 0;
+	grid->img = mlx_new_image(grid->mlx, window_size, window_size);
+	if (!grid->img)
+		ft_error_found("error creating image", errno, grid);
+	while (row < grid->height)
+	{
+		while (col < grid->width)
+		{
+			ft_transform(grid, direction, row, col);
+			colour = ft_hex_to_int(grid->points[row][col].colour_pix);
+			if (grid->points[row][col].x >= 0 && grid->points[row][col].x < window_size && grid->points[row][col].y >= 0 && grid->points[row][col].y < window_size)
+			{
+				mlx_put_pixel(grid->img, round(grid->points[row][col].x), round(grid->points[row][col].y), colour);
+				ft_draw_line(grid, row, col, grid->img);
+			}
+			col++;
+		}
+		row++;
+		col = 0;
+	}
+	if (mlx_image_to_window(grid->mlx, grid->img, 50, 50) < 0)
+		ft_error_found("error adding image to window", errno, grid);
+}
+
+void	keypress(mlx_key_data_t keydata, void *param)
+{
+	t_map   *grid;
+	int		row;
+	int		col;
+
+	row = 0;
+	col = 0;
+    grid = param;
+	if (keydata.key == MLX_KEY_ESCAPE && keydata.action == MLX_PRESS)
+		mlx_close_window(grid->mlx);
+	if (keydata.key == MLX_KEY_UP && keydata.action == MLX_PRESS)
+	{
+		mlx_delete_image(grid->mlx, grid->img);
+		ft_transform_image(grid, 1200, 'u');
+	}
+	if (keydata.key == MLX_KEY_DOWN && keydata.action == MLX_PRESS)
+	{
+		mlx_delete_image(grid->mlx, grid->img);
+		ft_transform_image(grid, 1200, 'd');
+	}
+	if (keydata.key == MLX_KEY_RIGHT && keydata.action == MLX_PRESS)
+	{
+		mlx_delete_image(grid->mlx, grid->img);
+		ft_transform_image(grid, 1200, 'r');
+	}
+	if (keydata.key == MLX_KEY_LEFT && keydata.action == MLX_PRESS)
+	{
+		mlx_delete_image(grid->mlx, grid->img);
+		ft_transform_image(grid, 1200, 'l');
+	}
+	// if (keydata.key == MLX_KEY_PAGE_UP && keydata.action == MLX_PRESS)
+	// 	ft_scale(grid, 1.1);
+}
+
+// static void ft_error(t_map *grid)//maybe remove this function and just use the other one --------------------------
+// {
+// 	if (grid)
+// 		ft_free_all(grid);
+// 	perror(mlx_strerror(mlx_errno));// is this correct ======================================
+// }
+
+void	leaks(void)// ----------------------------- REMOVE ---------------------------------
+{
+	system("leaks fdf");
+}// ----------------------------- REMOVE --------------------------------- ---------------
 
 
 int32_t	main(int argc, char **argv)
 {
-	map_grid	*grid;
+	t_map	*grid;
 	int			window_size;
 
 	grid = NULL;
 	window_size = 1200;
-	// atexit(leaks);// ----------------------------- REMOVE ---------------------------------
+	atexit(leaks);// ----------------------------- REMOVE ---------------------------------
 	ft_error_checks(argc, argv);
 	grid = ft_make_grid(argv, grid, window_size);
 	mlx_set_setting(MLX_MAXIMIZED, false);
 	grid->mlx = mlx_init(window_size, window_size, "FDF - MAP", false);
 	if (!grid->mlx)
-		ft_error(grid);
+		ft_error_found("error initialising mlx", errno, grid);
 	ft_make_image(grid, window_size);
 	if (mlx_image_to_window(grid->mlx, grid->img, 50, 50) < 0)
-		ft_error(grid);
+		ft_error_found("error adding image to window", errno, grid);
 	mlx_key_hook(grid->mlx, keypress, grid);
 	mlx_loop(grid->mlx);
 	mlx_terminate(grid->mlx);

@@ -6,7 +6,7 @@
 /*   By: gstronge <gstronge@student.42heilbronn.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/23 17:06:20 by gstronge          #+#    #+#             */
-/*   Updated: 2024/05/31 18:14:18 by gstronge         ###   ########.fr       */
+/*   Updated: 2024/06/11 14:47:21 by gstronge         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,15 +24,15 @@
 # include <math.h>
 # include <errno.h>// check if i need all of these =============================================
 
-typedef struct pixel
+typedef struct s_pixel
 {
 	float 		x;// do these need to be uint32_t???????????????????????????????????????????
 	float		y;
 	float		z;
-	uint32_t	colour;
-}				pixel;
+	char		*colour_pix;
+}				t_pixel;
 
-typedef struct line_pixel
+typedef struct s_line_pixel
 {
 	int			x;
 	int			y;
@@ -41,11 +41,11 @@ typedef struct line_pixel
 	float		f;
 	uint32_t	colour;
 	char		r_or_c;
-}				line_pixel;
+}				t_line_pixel;
 
-typedef struct map_grid// need to look up what the norm is for this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+typedef struct s_map// need to look up what the norm is for this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 {
-	pixel			**points;
+	t_pixel			**points;
 	int				width;
 	int				height;
 	float			scale;
@@ -53,8 +53,8 @@ typedef struct map_grid// need to look up what the norm is for this!!!!!!!!!!!!!
 	float			min_x;// do these need to be uint32_t???????????????????????????????????????????
 	float			max_y;// do these need to be uint32_t???????????????????????????????????????????
 	float			min_y;// do these need to be uint32_t???????????????????????????????????????????
-	mlx_t*			mlx;
-	mlx_image_t*	img;
-}				map_grid;
+	mlx_t			*mlx;
+	mlx_image_t		*img;
+}					t_map;
 
 #endif

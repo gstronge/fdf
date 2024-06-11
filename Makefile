@@ -11,11 +11,9 @@ OBJS	= ${SRCS:.c=.o}
 LIBFT_DIR	= libft
 LIBFT		= $(LIBFT_DIR)/libft.a
 
-#make it so that it automatically recreates the library repository each time
-
 all: libmlx $(NAME)
 
-libmlx:
+libmlx: $(LIBMLX)
 	@cmake $(LIBMLX) -B $(LIBMLX)/build && make -C $(LIBMLX)/build -j4
 
 %.o: %.c
@@ -26,6 +24,10 @@ $(NAME): $(OBJS) $(LIBFT)
 
 $(LIBFT):
 	@make -C $(LIBFT_DIR)
+
+$(LIBMLX):
+	@touch .gitmodules
+	@git submodule add -f https://github.com/codam-coding-college/MLX42.git
 
 clean:
 	@rm -rf $(OBJS)
@@ -40,8 +42,6 @@ re: clean all
 
 .PHONY: all, clean, fclean, re, libmlx
 
-
-# linking: see https://github.com/codam-coding-college/MLX42/blob/master/docs/index.md 	-lglfw(3) -framework Cocoa -framework OpenGL -framework IOKit
 
 
 
