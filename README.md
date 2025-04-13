@@ -1,63 +1,68 @@
-# get_next_line
+# fdf
 
-This project is part of the 42 school curriculum and focuses on reading a file line by line using a file descriptor in C. The goal is to implement a function `get_next_line()` that reads and returns one line from a given file descriptor, handling memory and buffer management manually and using only read(), malloc() and free().
+**fdf** is a project from the 42 curriculum that introduces you to basic graphics programming by rendering 3D wireframe models using a 2D isometric projection. The project uses the MiniLibX library to open a window, draw the model, and handle user interactions.
 
-## Project Description
+---
 
-The `get_next_line` function allows you to read from a file descriptor one line at a time. It is designed to work with different file descriptors, handles buffer limitations, and returns each line with the newline character (`\n`) when present.
+## Project Overview
 
-Function prototype:
+The program reads a map of coordinates from a `.fdf` file, where each number represents a point’s altitude. It then draws a 3D wireframe landscape using an isometric projection, connecting points with lines to simulate depth and elevation.
 
-```c
-char *get_next_line(int fd);
+This project is an introduction to computer graphics, coordinate transformation, and event-driven programming.
+
+
+## Rules and Constraints
+
+- The **MiniLibX** graphical library must be used.
+- Input is a single `.fdf` file containing a grid of integers.
+- Each point has an `(x, y, z)` coordinate where `z` is the altitude.
+- The program must open a graphical window and render the wireframe in **isometric projection**.
+- ESC key or window close button must exit the program cleanly.
+- The map file is assumed to be correctly formatted — no advanced error parsing is required.
+- No global variables allowed.
+
+
+## Window & Controls
+
+- Opens a window with the rendered 3D wireframe.
+- **ESC** key: exits the program.
+- Clicking the **close (X)** button on the window exits the program.
+- Window must handle minimizing, switching, and redrawing smoothly.
+
+
+## Concepts & Learning Goals
+
+- Understanding how to represent and project 3D data in 2D space
+- Using **MiniLibX** to create graphical applications
+- Implementing isometric projection
+- Drawing with algorithms like Bresenham’s line algorithm
+- Reading and parsing structured input files
+- Writing clean, modular, and memory-safe C code
+
+## .fdf File Format
+
+- Each .fdf file contains a grid of integers.
+- The column index represents the x coordinate.
+- The row index represents the y coordinate.
+- Each integer represents the z coordinate (altitude).
+
+Example .fdf file:
+
+```
+0 0 0 0 0
+0 0 10 0 0
+0 10 20 10 0
+0 0 10 0 0
+0 0 0 0 0
 ```
 
-## Mandatory Requirements
+## Compilation
 
-- Reads from a file descriptor line by line on each call.
-- Returns a full line (including the \n), or NULL if there’s nothing more to read or an error occurs.
-- Works with both files and standard input.
-- Must compile with and without the -D BUFFER_SIZE=n flag.
-- Allowed functions: read(), malloc(), free().
-
-Key Concepts
-
-- Uses a static variable to preserve reading state between function calls.
-- Efficient memory management using malloc and free.
-- Uses the read() system call with a buffer of defined size.
-
-Compilation
-
-To compile the project:
-
+To compile and run the project:
 
 ```bash
-cc -Wall -Wextra -Werror -D BUFFER_SIZE=42 get_next_line.c get_next_line_utils.c
+$ make
+$ ./fdf <map_file.fdf>
 ```
 
-You can adjust BUFFER_SIZE to test different performance and behavior cases.
 
-## Files
-
-- get_next_line.c: Core implementation of the function.
-- get_next_line_utils.c: Helper functions used by get_next_line.
-- get_next_line.h: Header file with the function prototype and necessary includes.
-
-## Bonus
-
-- Handles multiple file descriptors simultaneously.
-- Maintains a separate reading state for each file descriptor using only one static variable.
-
-## Example Usage
-
-```c
-int fd = open("example_file.txt", O_RDONLY);
-char *line;
-
-while ((line = get_next_line(fd)) != NULL)
-{
-    printf("%s", line);
-    free(line);
-}
-close(fd);
-```
